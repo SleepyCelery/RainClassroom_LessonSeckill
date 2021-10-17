@@ -11,8 +11,9 @@ import re
 import time
 
 
-def get_classinfo_dict():
+def get_classinfo_dict(cookie):
     result_list = []
+    homepage_headers['cookie'] = cookie
     response = requests.get(url=lesson_list_url, headers=homepage_headers)
     data = response.json()['data']['list']
     for i in data:
@@ -25,14 +26,16 @@ def get_classinfo_dict():
     return result_list
 
 
-def get_sku_id(classroom_id):
+def get_sku_id(cookie, classroom_id):
+    classroompage_headers['cookie'] = cookie
     response = requests.get(url=get_skuid_url.format(classroom_id=classroom_id), headers=classroompage_headers)
     return response.json()['data']['free_sku_id']
 
 
-def get_unfinished_video_id(sku_id, classroom_id):
+def get_unfinished_video_id(cookie, sku_id, classroom_id):
     score_detail_headers = classroompage_headers
     score_detail_headers['classroom-id'] = str(classroom_id)
+    score_detail_headers['cookie'] = cookie
     response = requests.get(url=score_detail_url.format(sku_id=sku_id), headers=score_detail_headers)
     data = response.json()['data']['leaf_level_infos']
     ids = []
@@ -45,13 +48,31 @@ def get_unfinished_video_id(sku_id, classroom_id):
     return ids
 
 
+def get_all_video_id(cookie, sku_id, classroom_id):
+    score_detail_headers = classroompage_headers
+    score_detail_headers['classroom-id'] = str(classroom_id)
+    score_detail_headers['cookie'] = cookie
+    response = requests.get(url=score_detail_url.format(sku_id=sku_id), headers=score_detail_headers)
+    data = response.json()['data']['leaf_level_infos']
+    ids = []
+    for i in data:
+        info = {}
+        if i['leaf_type'] == 0:
+            info['name'] = i['leaf_level_title']
+            info['id'] = i['id']
+            ids.append(info)
+    return ids
+
+
 class VideoSession:
-    def __init__(self, classroom_id, video_id):
+    def __init__(self, cookie, classroom_id, video_id):
         self.classroom_id = classroom_id
         self.video_id = video_id
         self.randomcode = execjs.eval("Math.floor(1048576 * (1 + Math.random())).toString(36)")
+        self.cookie = cookie
         leaf_info_headers = videopage_headers
         leaf_info_headers['classroom-id'] = str(self.classroom_id)
+        leaf_info_headers['cookie'] = self.cookie
         response = requests.get(url=leaf_info_url.format(classroom_id=self.classroom_id, video_id=self.video_id),
                                 headers=leaf_info_headers)
 
@@ -67,7 +88,8 @@ class VideoSession:
 
     def get_play_domain(self):
         playurl_headers = videopage_headers
-        playurl_headers['classroom-id'] = str(classroom_id)
+        playurl_headers['classroom-id'] = str(self.classroom_id)
+        playurl_headers['cookie'] = self.cookie
         response = requests.get(url=playurl_info_url.format(ccid=self.ccid), headers=playurl_headers)
         data = response.json()['data']['playurl']['sources']
         for i in data.keys():
@@ -75,7 +97,8 @@ class VideoSession:
 
     def get_video_watch_progress(self):
         video_progress_headers = videopage_headers
-        video_progress_headers['classroom-id'] = str(classroom_id)
+        video_progress_headers['classroom-id'] = str(self.classroom_id)
+        video_progress_headers['cookie'] = self.cookie
         response = requests.get(
             url=video_watch_progress_url.format(course_id=self.course_id, user_id=self.user_id,
                                                 classroom_id=self.classroom_id,
@@ -84,14 +107,16 @@ class VideoSession:
 
     def get_video_detail(self):
         video_detail_headers = classroompage_headers
-        video_detail_headers['classroom-id'] = str(classroom_id)
+        video_detail_headers['classroom-id'] = str(self.classroom_id)
+        video_detail_headers['cookie'] = self.cookie
         response = requests.get(video_detail_url.format(classroom_id=self.classroom_id, video_id=self.video_id),
                                 headers=video_detail_headers)
         print(response.json())
 
     def get_play_url(self):
         playurl_headers = videopage_headers
-        playurl_headers['classroom-id'] = str(classroom_id)
+        playurl_headers['classroom-id'] = str(self.classroom_id)
+        playurl_headers['cookie'] = self.cookie
         response = requests.get(url=playurl_info_url.format(ccid=self.ccid), headers=playurl_headers)
         data = response.json()['data']['playurl']['sources']
         for i in data.keys():
@@ -167,6 +192,8 @@ class VideoSession:
         return payloads
 
     def send_heartbeats(self, coroutine=False):
+        heartbeat_headers['cookie'] = self.cookie
+        heartbeat_headers['x-csrftoken'] = cookie_str2dict(self.cookie)['csrftoken']
         payloads = self._build_heartbeat_packets()
         pos = 0
         heartbeat_data_list = []
@@ -187,9 +214,10 @@ class VideoSession:
 
 
 if __name__ == '__main__':
-    classinfo = get_classinfo_dict()
+    cookie = 'django_language=zh-cn;sessionid=oahvidlp3kzjlzrsyg1gvfp0fgjekt20;csrftoken=uqi7DlfkK32I44DgAUbyskroUV9owGck;login_type=WX;'
+    classinfo = get_classinfo_dict(cookie)
     classroom_id = classinfo[0]['classroom_id']
-    sku_id = get_sku_id(classroom_id)
-    video_ids = get_unfinished_video_id(sku_id, str(classroom_id))
-    session = VideoSession(classroom_id, video_ids[0]['id'])
+    sku_id = get_sku_id(cookie, classroom_id)
+    video_ids = get_unfinished_video_id(cookie, sku_id, str(classroom_id))
+    session = VideoSession(cookie, classroom_id, video_ids[0]['id'])
     session.send_heartbeats(coroutine=True)

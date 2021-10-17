@@ -1,4 +1,3 @@
-cookie = ''
 login_url = 'https://changjiang.yuketang.cn/v2/web/index'
 lesson_list_url = 'https://changjiang.yuketang.cn/v2/api/web/courses/list?identity=2'
 get_skuid_url = 'https://changjiang.yuketang.cn/v2/api/web/classrooms/{classroom_id}?role=5'
@@ -14,8 +13,9 @@ def cookie_str2dict(cookiestr):
     cookie_dict = {}
     cookie_list = cookiestr.split(';')
     for i in cookie_list:
-        key, value = i.strip().split('=')
-        cookie_dict[key] = value
+        if i != "":
+            key, value = i.strip().split('=')
+            cookie_dict[key] = value
     return cookie_dict
 
 
@@ -36,7 +36,6 @@ homepage_headers = {
     'sec-fetch-dest': 'empty',
     'referer': 'https://changjiang.yuketang.cn/v2/web/index',
     'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja;q=0.6',
-    'cookie': cookie
 }
 
 classroompage_headers = {
@@ -56,7 +55,6 @@ classroompage_headers = {
     'sec-fetch-mode': 'cors',
     'sec-fetch-dest': 'empty',
     'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja;q=0.6',
-    'cookie': cookie
 }
 
 videopage_headers = {
@@ -75,7 +73,6 @@ videopage_headers = {
     'sec-fetch-mode': 'cors',
     'sec-fetch-dest': 'empty',
     'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja;q=0.6',
-    'cookie': cookie
 }
 
 heartbeat_headers = {
@@ -90,12 +87,10 @@ heartbeat_headers = {
     'accept': '*/*',
     'x-requested-with': 'XMLHttpRequest',
     'xtbz': 'ykt',
-    'x-csrftoken': cookie_str2dict(cookie)['csrftoken'],
     'sec-ch-ua-platform': '"Windows"',
     'origin': 'https://changjiang.yuketang.cn',
     'sec-fetch-site': 'same-origin',
     'sec-fetch-mode': 'cors',
     'sec-fetch-dest': 'empty',
     'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,ja;q=0.6',
-    'cookie': cookie
 }
