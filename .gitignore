@@ -1,5 +1,7 @@
 /build/
 /dist/
+/.idea/
+/__pycache__/
 *.ui
 *.exe
 *.spec
